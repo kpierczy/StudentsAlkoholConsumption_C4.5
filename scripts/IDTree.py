@@ -66,7 +66,7 @@ class IDTreeNode:
     --- Important ---
 
     string representing formula HAVE TO be in one of two form:
-    1) for numerical feature : " <= attributeValue"
+    1) for numerical feature : " <= attributeValue" or " > attributeValue"
     2) for nominal feature : " == attributeClass"
 
     """
@@ -159,28 +159,28 @@ class IDTreeNode:
         Parameters
         ----------
         childFormula : string
-            new child's formula (should be in form given
-            in class description)
+            new child's formula (should be in form given in class description)
         child : IDTreeNode, IDTreeLeaf
             new child
 
         Returns
         -------
         False : bool
-            childFormula is of a bad format or child is of
-            a wrong type
+            childFormula is of a bad format or child is of a wrong type
         True : bool
             new child added
         """
 
-        if len(childFormula) <= 4:
-            print('addChild(): child formula is too short')
+        if len(childFormula) <= 3 or \
+           (len(childFormula) == 4 and childFormula[0:3] != ' > '):
+            print('addChild(): child formula is too short (', childFormula, ')')
             return False
-        elif not (childFormula[0:4] in [' == ', ' <= ']):
-            print('addChild(): child formula is of a wrong format')
+        elif (not (childFormula[0:4] in [' == ', ' <= '])) and \
+             (not childFormula[0:3] == ' > '):
+            print(f'addChild(): child formula is of a wrong format ({childFormula})')
             return False
         elif type(child) != IDTreeLeaf and type(child) != IDTreeNode:
-            print('addChild(): child type should be IDTreeLeaf or IDTreeNode')
+            print('addChild(): child type should be IDTreeLeaf or IDTreeNode (actual: ', type(child), ')')
         else:
             self.__children[childFormula] = child
             return True

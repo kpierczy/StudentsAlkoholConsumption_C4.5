@@ -109,7 +109,14 @@ class ID3:
             result identification tree
         """
 
-        return IDTree(self.__buildTree(df))
+        # Initialize dictionary containing features types (numerical or nominal)
+        featuresTypes = dict() 
+        featuresNumber = df.shape[1]-1
+        for i in range(0, featuresNumber):
+            featureName = df.columns[i]
+            featuresTypes[featureName] = df[featureName].dtypes
+
+        return IDTree(self.__buildTree(df, featuresTypes))
 
 
 
@@ -337,7 +344,7 @@ class ID3:
 
 
 
-    def __buildTree(self, df):
+    def __buildTree(self, df, featuresTypes):
         """ Build IDTree recursively
         
         Parameters
@@ -349,14 +356,10 @@ class ID3:
         -------
         tree : IDTree
             tree build with an algorithm
+        featuresTypes : dictionary {'featureName' : type}
+            dictionary containing pairt name-type for the 
+            features in analysed data set
         """
-
-        # Initialize dictionary containing features types (numerical or nominal)
-        featuresTypes = dict() 
-        featuresNumber = df.shape[1]-1
-        for i in range(0, featuresNumber):
-            featureName = df.columns[i]
-            featuresTypes[featureName] = df[featureName].dtypes
 
         #------------------------------------------#
         #-------- Prepare for building tree -------#
@@ -365,6 +368,20 @@ class ID3:
         df_copy = df.copy()
         bestFeature = self.__chooseFeature(df)
         
+        # Restore all numerical collumns in df except 'bestFeature'
+        # (they were modified in __chooseFeature() by __convertToNominal()
+        # during looking for the bestFeature)
+        #
+        # We want to leave non-choosen numerical features at they were
+        # because in the next layers of the tree algorithm can choose
+        # different threshold for them
+        columns = df.shape[1]
+        for i in range(0, columns-1):
+            featureName = df.columns[i]
+            column_type = featuresTypes[featureName]
+            if column_type != 'object' and featureName != bestFeature:
+                df[featureName] = df_copy[featureName]
+
         # Check if feature is numerical
         numericColumn = False
         if featuresTypes[bestFeature] != 'object':
@@ -376,6 +393,8 @@ class ID3:
             if i == bestFeature:
                 bestFeatureIndex = j
             j = j + 1
+
+
 
         # Count classes present in df in the 'bestFeature' feature
         classes = df[bestFeature].value_counts().keys().tolist()
@@ -442,7 +461,7 @@ class ID3:
             
             # If decision is not made, continue to create branch and leafs
             else: 
-                node = self.__buildTree(subdataset)
+                node = self.__buildTree(subdataset, featuresTypes)
                 returnNode.addChild(comparisonFormula, node)
 
         return returnNode
