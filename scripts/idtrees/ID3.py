@@ -1,6 +1,8 @@
 import math
 import numpy as np
-from idtress.IDTree import IDTree, IDTreeNode, IDTreeLeaf
+
+from idtrees.ID3Tree import ID3Tree
+from idtrees.IDNodes import IDTreeNode, IDTreeLeaf
 
 class ID3:
 
@@ -8,11 +10,18 @@ class ID3:
     
     Implementation of algorithm slightly extends possibilities of a classical
     approach by adding:
-        - additional ways to measure entropy/impurity (not only information
-          gain but also gain ratio and gini index)
+
+        - additional ways to measure entropy/impurity (not only Information
+          Gain but also Gain Ratio and Gini Index)
+
         - converting numerical features to two separate nominal classes
-          (<=x and >x) with the optimal border (x) computation (idea
+          (<=x and >x) with the optimal border (x) computation (idea derivative
           from C4.5 algorithm)
+
+        - when any feature's class is missing in a record (sample),
+          entropy/impurity for this class is calculated without taking
+          this sample into account (also derivative from C4.5)
+        
 
     Simple interface make it able to configure entropy measurement method
     and compute result tree in two lines of code, so it is easy to make
@@ -124,7 +133,7 @@ class ID3:
             featureName = df.columns[i]
             featuresTypes[featureName] = df[featureName].dtypes
 
-        return IDTree(self.__buildTree(df, featuresTypes), list(featuresTypes.keys()))
+        return ID3Tree(self.__buildTree(df, featuresTypes), list(featuresTypes.keys()))
 
 
 
@@ -292,14 +301,16 @@ class ID3:
                 # Calculate ratio of the samples present in 'currentClass'
                 classProbability = subsetSamplesNumber/samplesNumber
                 
-                # Calculate normalized information gain
-                subsetEntropy = self.__calculateEntropy(subdataset)
-                gain = gain - classProbability * subsetEntropy			
-                
-                # Calculate normalized splinfo if gainRatio indicator choosen
+                # Calculate normalized information gain if 'gain' or 'gainRatio' choosen
+                if self.__entropyIndicator in ['gain', 'gainRatio']:
+                    # Calculate normalized information gain
+                    subsetEntropy = self.__calculateEntropy(subdataset)
+                    gain = gain - classProbability * subsetEntropy			
+
+                # Calculate normalized splinfo if'gainRatio' choosen
                 if self.__entropyIndicator == 'gainRatio':
                     splitinfo = splitinfo - classProbability*math.log(classProbability, 2)
-                # Calculate gini index if gini indicator choosen
+                # Calculate gini index if 'gini' choosen
                 elif self.__entropyIndicator == 'gini':
                     targetClasses = subdataset['Target'].value_counts().tolist()
                     subgini = 1
