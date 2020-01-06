@@ -61,7 +61,6 @@ tree.saveAsFunction('rule.py')
 # Collect accuracy statistic (on training set)
 count = 0
 for i in range(df.shape[0]):
-    print(i)
     sample = df.iloc[i].tolist()
     if tree.predict(sample[:len(sample) - 1]) == sample[len(sample) - 1]:
         count = count + 1
