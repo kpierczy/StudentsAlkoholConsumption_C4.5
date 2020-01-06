@@ -1,4 +1,4 @@
-from ID3 import ID3
+from idtress.ID3 import ID3
 
 class C45(ID3):
 

@@ -1,5 +1,3 @@
-
-
 #---------------------------------------------------------------------#
 #------------------------------- Leaf --------------------------------#
 #---------------------------------------------------------------------#
@@ -235,7 +233,14 @@ class IDTree:
     ###########################################################################################
 
     def predict(self, sample):
-        pass
+        """ Returns classification predicted by the IDTree
+
+        Parameters
+        ----------
+        sample : list
+            list of features representing sample
+        """
+        return self.__evaluateNode(self.__rootNode, sample)
 
 
 
@@ -264,6 +269,13 @@ class IDTree:
                                  self.__rootNode, depth=1, argName=argName, indentation= indentation
                              )
 
+        # Function footage
+        functionDefinition = functionDefinition + \
+                             ' ' * indentation + \
+                             "print('No classification achieved. Check sample's features')" + "\n" \
+                             ' ' * indentation + \
+                             "return False" + "\n"
+
         # Write to file
         self.__saveToFile(functionDefinition, filename, fileMode)
         
@@ -287,6 +299,66 @@ class IDTree:
     ###########################################################################################
     ####################################  Utilities  ##########################################
     ###########################################################################################
+
+    def __evaluateNode(self, node, sample):
+        """ Evaluates tree having root in the node
+
+        Parameters
+        ----------
+        node : IDTreeNode, IDTreeLeaf
+            node representing tree to evaluate
+        sample : list
+            list of features to evaluate tree with respect to
+
+        Returns
+        -------
+        classification : string
+            returns
+        """
+        
+        # Intermediate node
+        if type(node) == IDTreeNode:
+            
+            # Iterate over children of the node
+            keys = list(node.getChildren().keys())
+            for key in keys:
+                
+                # Nominal feature
+                if key.startswith(' == '):
+                    # Make comparison
+                    if sample[node.getFeatureIndex()] == key[5:len(key) - 1]:
+                        # If comparison true, return  actual children's evaluation
+                        return self.__evaluateNode(node.getChildren()[key], sample)
+
+                #Numerical feature
+                elif key.startswith(' <= '):
+                    # Make comparison
+                    if sample[node.getFeatureIndex()] <= float(key[4:len(key)]):
+                        # If comparison true, return  actual children's evaluation
+                        return self.__evaluateNode(node.getChildren()[key], sample)
+
+                elif key.startswith(' > '):
+                    # Make comparison
+                    if sample[node.getFeatureIndex()] > float(key[3:len(key)]):
+                        # If comparison true, return  actual children's evaluation
+                        return self.__evaluateNode(node.getChildren()[key], sample)
+
+                # Wrong condition
+                else:
+                    raise Exception(
+                        f"_evaluateNode: wrong children node's condition ({key})"
+                    )
+
+            print('__evaluateNode(): impossible to classify sample')
+            raise Exception("Check samples arguments")
+
+        # Terminal node (leaf)
+        elif type(node) == IDTreeLeaf:
+            return node.getTargetClass()
+
+
+
+
 
     def __makeHeader(self):
 
@@ -352,7 +424,7 @@ class IDTree:
                 # Inetrmediate or last child
                 else:
                     rule = f'elif {argName}[{node.getFeatureIndex()}]' + key + ':' 
-                       
+
                 # Format if-elif header
                 ruleset = ruleset + self.__formatRule(rule, depth, indentation)
                 # Call __makeRuleset() to fullfill if-elif statement (RECURSION)

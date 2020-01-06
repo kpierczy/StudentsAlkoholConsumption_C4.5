@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from IDTree import IDTree, IDTreeNode, IDTreeLeaf
+from idtress.IDTree import IDTree, IDTreeNode, IDTreeLeaf
 
 class ID3:
 
