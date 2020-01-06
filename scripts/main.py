@@ -47,10 +47,11 @@ from idtrees.ID3 import ID3
 ###############################################################
 
 # Prepare data - read ID3 class' header comment
+# to find out why data have to be prepared
 df = pd.read_csv('datasets/student-mat.csv')
 df = ID3.prepareData(df, 'Mjob', features=['age', 'Medu', 'Fedu', 'Dalc', 'Walc', 'health', 'absences'])
 
-# Compute algorithm
+# Build identification tree
 algorithm = ID3(entropyIndicator='gain')
 tree = algorithm.compute(df.copy())
 
