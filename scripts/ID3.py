@@ -1,6 +1,8 @@
 import math
 import numpy as np
 
+from IDTree import IDTree, IDTreeNode, IDTreeLeaf
+
 class ID3:
 
     """ Implementation of ID3 classifier algorithm 
@@ -62,7 +64,7 @@ class ID3:
         """ Sets a new value for entropyIndicator 
         
         Parameters
-        ---------
+        ----------
         entropyIndicator : {'gain', 'gainRatio', 'gini'}
             method of measuring entropy/impurity of computed
             feature/target classes
@@ -89,7 +91,87 @@ class ID3:
     ###########################################################################################
 
     def compute(self, df):
-        pass
+        """ Computes IDTreee with ID3 algorithm
+        
+        This method is distinguished from self.__buildTree() for two reasons:
+            - latter interface consistency with derived classes
+            - possible introduction of statostics utilities that would
+              measure accuracy of the built tree
+        
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            set of traning data
+        
+        Returns
+        -------
+        tree : IDTree
+            result identification tree
+        """
+
+        return IDTree(self.__buildTree(df))
+
+
+
+
+    @staticmethod
+    def prepareData(df, targetName, features=None):
+        """ Prepares df.DataFrame with arbitrary numer of columns to be used with ID3 class
+
+        Required dataset format:
+
+        Feature_1 Feature_2 Feature_3 --------- Feature_N_1 Feature_N
+            -         -         -                    -          -  
+            -         -         -                    -          -  
+            -         -         -                    -          -  
+            -         -         -                    -          -  
+
+        Parameters
+        ---------
+        df : pandas.DataFrame
+            data set to prepare
+        targetName : string
+            name of the column to be set as a target
+        features : list of strings, optional (default : all features)
+            names of columns to be selected as features
+
+        Returns
+        -------
+        newDf : pandas.DataFrame
+            formated data set
+        """
+
+        # Check if target present
+        if not (targetName in df.columns.tolist()):
+            print('prepareData(): No such target in data set')
+            return
+
+        # All columns used in the data set
+        if features is None:
+            columnsNames = df.columns.tolist()
+            # Remove target feature's name from the columns list
+            columnsNames.remove(targetName)
+            # Insert traget column to the end position
+            newDf = df[columnsNames + [targetName]]
+        # Target present in features list
+        elif targetName in features:
+            print('prepareData(): Target cannot be present in features list')
+            return
+        # Part of columns used in the data set
+        elif all(name in df.columns.tolist() for name in features):
+            # Insert traget column to the end position
+            newDf = df[features + [targetName]]
+        # Absent columns names given
+        else:
+            print('prepareData(): features list containt lacking names of columns')
+            for name in features:
+                if not (name in df.columns.tolist()):
+                    print('- ', name)
+            return
+
+        newDF = newDf.rename(columns={targetName : 'Target'})
+
+        return newDF
 
 
 
@@ -112,15 +194,16 @@ class ID3:
             values of entropy/impurity for a givent data set
 
         """
-        # Get number of instances and number of classes in the target
-        instances = df.shape[0]
+        
+        # Get number of samples and number of classes in the target
+        samples = df.shape[0]
         targetClasses = df['Target'].value_counts().keys().tolist()
         entropy = 0
 
         # Calculate and sum elements of entropy for every class
         for i in range(0, len(targetClasses)):
-            num_of_decisions = df['Decision'].value_counts().tolist()[i]		
-            classProbability = num_of_decisions/instances
+            num_of_decisions = df['Target'].value_counts().tolist()[i]		
+            classProbability = num_of_decisions/samples
             entropy = entropy - classProbability*math.log(classProbability, 2)
             
         return entropy
@@ -187,11 +270,11 @@ class ID3:
 
                 # Get current class name
                 currentClass = classes.keys().tolist()[j]
-                # Get rows (samples) where feature is equal to 'current_class'
+                # Get rows (samples) where feature is equal to 'currentClass'
                 subdataset = df[df[featureName] == currentClass]
-                # Count number of samples in 'current_class'
+                # Count number of samples in 'currentClass'
                 subsetSamplesNumber = subdataset.shape[0]
-                # Calculate ratio of the samples present in 'current_class'
+                # Calculate ratio of the samples present in 'currentClass'
                 classProbability = subsetSamplesNumber/samplesNumber
                 
                 # Calculate normalized information gain
@@ -242,20 +325,127 @@ class ID3:
         #------------------------------------------#
         
         if self.__entropyIndicator == 'gain':
-            beastFeatureIndex = gains.index(max(gains))
+            bestFeatureIndex = gains.index(max(gains))
         elif self.__entropyIndicator == 'gainRatio':
-            beastFeatureIndex = gainratios.index(max(gainratios))
+            bestFeatureIndex = gainratios.index(max(gainratios))
         elif self.__entropyIndicator == 'gini':
-            beastFeatureIndex = ginis.index(min(ginis))
+            bestFeatureIndex = ginis.index(min(ginis))
 
-        beastFeatureName = df.columns[beastFeatureIndex]
-        return beastFeatureName
+        bestFeatureName = df.columns[bestFeatureIndex]
+        return bestFeatureName
 
 
 
 
     def __buildTree(self, df):
-        pass
+        """ Build IDTree recursively
+        
+        Parameters
+        ----------
+        df : pandas.DataFrame
+            data set to produces tree with
+
+        Returns
+        -------
+        tree : IDTree
+            tree build with an algorithm
+        """
+
+        # Initialize dictionary containing features types (numerical or nominal)
+        featuresTypes = dict() 
+        featuresNumber = df.shape[1]-1
+        for i in range(0, featuresNumber):
+            featureName = df.columns[i]
+            featuresTypes[featureName] = df[featureName].dtypes
+
+        #------------------------------------------#
+        #-------- Prepare for building tree -------#
+        #------------------------------------------#
+
+        df_copy = df.copy()
+        bestFeature = self.__chooseFeature(df)
+        
+        # Check if feature is numerical
+        numericColumn = False
+        if featuresTypes[bestFeature] != 'object':
+            numericColumn = True
+
+        # Find winner index (number of column in df)
+        j = 0 
+        for i in featuresTypes:
+            if i == bestFeature:
+                bestFeatureIndex = j
+            j = j + 1
+
+        # Count classes present in df in the 'bestFeature' feature
+        classes = df[bestFeature].value_counts().keys().tolist()
+
+        # Initialize node to be return by the method's call
+        returnNode = IDTreeNode(bestFeature, bestFeatureIndex)
+
+        #---------------(for loop)-----------------#
+        #--------- Recursively build tree ---------#
+        #------------------------------------------#
+
+        for i in range(0,len(classes)):
+            # Check currently unfolded class of 'bestFeature' feature
+            currentClass = classes[i]
+            # Take only rows, where 'bestFeature' feature is equal to 'currentClass'
+            subdataset = df[df[bestFeature] == currentClass]
+            # Drop 'bestFeature' column from the 'subdataset'
+            # (It contains only 'currentClass' fields)
+            subdataset = subdataset.drop(columns=[bestFeature])
+            
+            # Check if 'bestFeature' is numeric or nominal
+            if numericColumn == True:
+                # If numeric, comparisonFormula is the value that splits
+                # numerical values in two classes (i.e. is the x
+                # in <= x or >x comparison) taken with '<='
+                # comparison aign at the beggining (it is converted
+                # to such form in the findDecision() method)
+                comparisonFormula = currentClass
+            else:
+                # If nominal, the comparison present in the rule set
+                # (identification tree) will be comparison to string
+                comparisonFormula = " == '"+str(currentClass)+"'"
+            
+            #------------------------------------------#
+            #-------- If terminal node reached --------#
+            #------------------------------------------#
+
+            terminateBuilding = False
+            
+            #----- Only one target class left ----# 
+            if len(subdataset['Target'].value_counts().tolist()) == 1:
+                # Get the only class left
+                finalTarget = subdataset['Target'].value_counts().keys().tolist()[0]
+                leaf = IDTreeLeaf(finalTarget)
+                terminateBuilding = True
+
+            #---------- No features left ---------#
+            # Cannot decide basing on training data
+            # no features left despite of more than
+            # one target class
+            elif subdataset.shape[1] == 1:
+                # Get most common class
+                finalTarget = subdataset['Target'].value_counts().idxmax()
+                leaf = IDTreeLeaf(finalTarget)
+                terminateBuilding = True
+            
+            #-------------------------------------------#
+            #-- Terminate branch or continue building --#
+            #-------------------------------------------#
+            
+            # If terminal node (leaf) found
+            if terminateBuilding == True:
+                returnNode.addChild(comparisonFormula, leaf)
+            
+            # If decision is not made, continue to create branch and leafs
+            else: 
+                node = self.__buildTree(subdataset)
+                returnNode.addChild(comparisonFormula, node)
+
+        return returnNode
 
 
 
@@ -296,8 +486,8 @@ class ID3:
             df[featureName] = \
                 np.where( \
                     df[featureName] <= bestFeatureThreshold, \
-                    "<="+str(bestFeatureThreshold), \
-                    ">"+str(bestFeatureThreshold) \
+                    " <= "+str(bestFeatureThreshold), \
+                    " > "+str(bestFeatureThreshold) \
                 )
 
             return df
@@ -318,10 +508,10 @@ class ID3:
             # Take number of samples (rows) in subsets and whole df
             subsetOneSamples = subsetOne.shape[0]
             subsetTwoSamples = subsetTwo.shape[0]
-            total_instances = df.shape[0]
+            totalSamples = df.shape[0]
             # Calculate proportional participation of samples in both classes
-            subsetOneProbability = subsetOneSamples / total_instances
-            subsetTwoProbability = subsetTwoSamples / total_instances
+            subsetOneProbability = subsetOneSamples / totalSamples
+            subsetTwoProbability = subsetTwoSamples / totalSamples
             
             #----- Information Gain -----#
             if self.__entropyIndicator == 'gain':
@@ -354,8 +544,8 @@ class ID3:
                     subsetTwoGini = subsetTwoGini - math.pow((targetsForSubsetTwo[j] / subsetTwoSamples),2)
 
                 # Total gini value for particular border
-                gini = (subsetOneSamples / total_instances) * subsetOneGini + \
-                       (subsetTwoSamples/total_instances) * subsetTwoGini
+                gini = (subsetOneSamples / totalSamples) * subsetOneGini + \
+                       (subsetTwoSamples/totalSamples) * subsetTwoGini
                 subsetGinis.append(gini)
 
                 
@@ -375,8 +565,8 @@ class ID3:
         # Format all numerical classes to two (<=x and >x) nominal classes
         df[featureName] = np.where( \
             df[featureName] <= bestFeatureThreshold, \
-            "<="+str(bestFeatureThreshold), \
-            ">"+str(bestFeatureThreshold) \
+            " <= "+str(bestFeatureThreshold), \
+            " > "+str(bestFeatureThreshold) \
         )
         
         return df
