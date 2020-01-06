@@ -552,7 +552,7 @@ class ID3:
             subsetTwoProbability = subsetTwoSamples / totalSamples
             
             #----- Information Gain -----#
-            if self.__entropyIndicator == 'gain':
+            if self.__entropyIndicator in ['gain', 'gainRatio']:
                 actualThresholdGain = entropy - subsetOneProbability * self.__calculateEntropy(subsetOne) \
                                               - subsetTwoProbability * self.__calculateEntropy(subsetTwo)
                 subsetGains.append(actualThresholdGain)

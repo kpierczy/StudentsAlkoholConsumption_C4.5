@@ -80,9 +80,9 @@ class ID3Tree:
                              )
 
         # Function footage
-        functionDefinition = functionDefinition + \
+        functionDefinition = functionDefinition + "\n" + \
                              ' ' * indentation + \
-                             "print('No classification achieved. Check sample's features')" + "\n" \
+                             "print('No classification achieved. Check features of the sample')" + "\n" +\
                              ' ' * indentation + \
                              "return False" + "\n"
 

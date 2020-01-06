@@ -48,7 +48,7 @@ from idtrees.ID3 import ID3
 
 # Prepare data - read ID3 class' header comment
 df = pd.read_csv('datasets/student-mat.csv')
-df = ID3.prepareData(df, 'Mjob') #, features=['age', 'Medu', 'Fedu', 'Dalc', 'Walc', 'health', 'absences'])
+df = ID3.prepareData(df, 'Mjob', features=['age', 'Medu', 'Fedu', 'Dalc', 'Walc', 'health', 'absences'])
 
 # Compute algorithm
 algorithm = ID3(entropyIndicator='gain')
