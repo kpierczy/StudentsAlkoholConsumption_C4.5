@@ -1,6 +1,5 @@
 import math
 import numpy as np
-
 from IDTree import IDTree, IDTreeNode, IDTreeLeaf
 
 class ID3:
@@ -42,12 +41,14 @@ class ID3:
         
         Parameters
         ---------
-        entropyIndicator : {'gain', 'gainRatio', 'gini'}, optional (default : 'gain)
+        entropyIndicator : ['gain', 'gainRatio', 'gini'], optional (default : 'gain')
             method of measuring entropy/impurity of computed
             feature/target classes
         """
-        self.__entropyIndicator = entropyIndicator
-        pass
+        if entropyIndicator in ['gain', 'gainRatio', 'gini']:
+            self.__entropyIndicator = entropyIndicator
+        else:
+            self.__entropyIndicator = 'gain'
 
 
 
@@ -65,7 +66,7 @@ class ID3:
         
         Parameters
         ----------
-        entropyIndicator : {'gain', 'gainRatio', 'gini'}
+        entropyIndicator : ['gain', 'gainRatio', 'gini']
             method of measuring entropy/impurity of computed
             feature/target classes
         
@@ -77,7 +78,7 @@ class ID3:
             new entropyIndicator set
         """
         
-        if entropyIndicator in {'gain', 'gainRatio', 'gini'}:
+        if entropyIndicator in ['gain', 'gainRatio', 'gini']:
             self.__entropyIndicator = entropyIndicator
             return True
         else:
@@ -109,6 +110,13 @@ class ID3:
             result identification tree
         """
 
+        # Check if valid data forat
+        columnLabels = df.columns.tolist() 
+        targetLabel = columnLabels[len(columnLabels) - 1]
+        if targetLabel != 'Target':
+            print("Expected: Target, Actual: ",targetLabel)
+            raise ValueError("Please validate data's form before calling algorithm")
+
         # Initialize dictionary containing features types (numerical or nominal)
         featuresTypes = dict() 
         featuresNumber = df.shape[1]-1
@@ -116,7 +124,7 @@ class ID3:
             featureName = df.columns[i]
             featuresTypes[featureName] = df[featureName].dtypes
 
-        return IDTree(self.__buildTree(df, featuresTypes))
+        return IDTree(self.__buildTree(df, featuresTypes), list(featuresTypes.keys()))
 
 
 
@@ -400,7 +408,7 @@ class ID3:
         classes = df[bestFeature].value_counts().keys().tolist()
 
         # Initialize node to be return by the method's call
-        returnNode = IDTreeNode(bestFeature, bestFeatureIndex)
+        returnNode = IDTreeNode(bestFeatureIndex)
 
         #---------------(for loop)-----------------#
         #--------- Recursively build tree ---------#
@@ -426,7 +434,7 @@ class ID3:
             else:
                 # If nominal, the comparison present in the rule set
                 # (identification tree) will be comparison to string
-                comparisonFormula = " == '"+str(currentClass)+"'"
+                comparisonFormula = f" == '{currentClass}'"
             
             #------------------------------------------#
             #-------- If terminal node reached --------#
@@ -503,10 +511,10 @@ class ID3:
             bestFeatureThreshold = uniqueFeaturesValues[0]
             # Format all numerical classes to two (<=x and >x) nominal classes
             df[featureName] = \
-                np.where( \
-                    df[featureName] <= bestFeatureThreshold, \
-                    " <= "+str(bestFeatureThreshold), \
-                    " > "+str(bestFeatureThreshold) \
+                np.where( 
+                    df[featureName] <= bestFeatureThreshold,
+                    " <= "+str(bestFeatureThreshold),
+                    " > "+str(bestFeatureThreshold)
                 )
 
             return df
@@ -582,10 +590,10 @@ class ID3:
         # The best threshold possible
         bestFeatureThreshold = uniqueFeaturesValues[bestFeatureThresholdIndex]
         # Format all numerical classes to two (<=x and >x) nominal classes
-        df[featureName] = np.where( \
-            df[featureName] <= bestFeatureThreshold, \
-            " <= "+str(bestFeatureThreshold), \
-            " > "+str(bestFeatureThreshold) \
+        df[featureName] = np.where(
+            df[featureName] <= bestFeatureThreshold,
+            " <= "+str(bestFeatureThreshold),
+            " > "+str(bestFeatureThreshold)
         )
         
         return df

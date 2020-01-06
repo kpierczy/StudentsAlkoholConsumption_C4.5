@@ -24,10 +24,12 @@ class IDTreeLeaf:
         self.__targetClass = targetClass
 
     def getTargetClass(self):
+
         """ Returns class pointed by the leaf """
         return self.__targetClass
 
     def setTargetClass(self, targetClass):
+
         """ Set new class pointed by the leaf
         
         Parameters
@@ -66,79 +68,49 @@ class IDTreeNode:
     --- Important ---
 
     string representing formula HAVE TO be in one of two form:
-    1) for numerical feature : " <= attributeValue" or " > attributeValue"
-    2) for nominal feature : " == attributeClass"
+    1) for numerical feature : " <= featureValue" or " > featureValue"
+    2) for nominal feature : " == 'featureClass'"
 
     """
 
-    def __init__(self, attributeName, attributeIndex):
+    def __init__(self, featureIndex):
         
-        """ Initializes IDTree Node with a name of an atttribute 
+        """ Initializes IDTree Node with an index of a feature 
         
         Attribute is a feature that is checked by this node. Initial
         children dictionary is empty
 
         Parameters
         ----------
-        attributeName : string
-            name of the attribute to be checked by the Node
-        attributeIndex : int
-            index of attribute in the features set (it's used while
+        featureIndex : int
+            index of a feature (column) in the features set (it's used while
             serializing tree into python function)
         """
 
-        self.__attributeName = attributeName
-        self.__attributeIndex = attributeIndex
+        self.__featureIndex = featureIndex
         self.__children = {}
 
-    def getAttributeName(self):
-        """ Returns attribute checked by the node """
-        return self.__attributeName
+    def getFeatureIndex(self):    
+        """ Returns feature's index """
+        return self.__featureIndex
 
-    def setAttributeName(self, attributeName):
-        """ Set new attribute checked by the node
+    def setFeatureIndex(self, featureIndex):
+        """ Set new feature index
         
         Parameters
         ----------
-        attributeName : string
-            new attribute
-
+        featureIndex : int
+            new feature's index
         Returns
         -------
         False : bool
-            attributeName is not a string
+            featureIndex is not a non-negative int
         True : bool
-            new attributeName set
+            new featureIndex set
         """
 
-        if type(attributeName) is str:
-            self.__attributeName = attributeName
-            return True
-        else:
-            return False
-
-    def getAttributeIndex(self):
-        """ Returns attribute's index """
-        return self.__attributeIndex
-
-    def setAttributeIndex(self, attributeIndex):
-        """ Set new attribute index
-        
-        Parameters
-        ----------
-        attributeIndex : int
-            new attribute index
-
-        Returns
-        -------
-        False : bool
-            attributeName is not a a non-negative int
-        True : bool
-            new attributeName set
-        """
-
-        if type(attributeIndex) is int and attributeIndex >= 0:
-            self.__attributeIndex = attributeIndex
+        if type(featureIndex) is int and featureIndex >= 0:
+            self.__featureIndex = featureIndex
             return True
         else:
             return False
@@ -148,6 +120,7 @@ class IDTreeNode:
         return self.__children
 
     def addChild(self, childFormula, child):
+
         """ Adds new child for the node
 
         --- Important ---
@@ -186,6 +159,7 @@ class IDTreeNode:
             return True
 
     def removeChild(self, childFormula):
+
         """ Child child for the node
         
         Parameters
@@ -220,36 +194,209 @@ class IDTree:
     
     Class publishes interface to serialize IDTree in a form of Python
     function as well as predicting sample's class
+
+    Attributes
+    ----------
+    rootNode : IDTreeLeaf or IDTreeNode
+        initial roodNode of the tree
+    features : list
+        list of features present in the tree
+
     """
 
-    def __init__(self, rootNode):
-        """ Initializes IDTree with a given rootNode
+    def __init__(self, rootNode=None, features=[]):
 
-        If rootNode is of a wrong type it is initialized with None.
+        """ Initializes IDTree with a given rootNode
 
         Parameters
         ----------
-        rootNode : IDTreeLeaf or IDTreeNode
+        rootNode : IDTreeLeaf or IDTreeNode, optional (default : None)
             initial roodNode of the tree
+        features : list, optional (default : [])
+            list of features present in the tree
         """
         
+        # __rootNode
         if type(rootNode) != IDTreeLeaf and type(rootNode) != IDTreeNode:
             self.__rootNode = None
         else:
             self.__rootNode = rootNode
+        # __features
+        self.__features = features
+
+
+
         
+
+
+
+    ###########################################################################################
+    ####################################  Interface  ##########################################
+    ###########################################################################################
 
     def predict(self, sample):
         pass
 
-    def saveAsFunction(self, filename):
-        pass
 
-    def __formatRule(self, depth, filename):
-        pass
 
-    def __writeRule(self, content, filename):
-        pass
 
+    def saveAsFunction(self, filename, argName='sample', fileMode='w', indentation=2):
+
+        """ Saves IDTree as a python function
+
+        Parameters
+        ----------
+        filename : string
+            name of the file to write function
+        argName : string, optional (default : 'sample')
+            name of the argument used in function (argument is a list of fetures)
+        fileMode : string, optional (default : 'w')
+            mode that will serve to open the file
+        indentation : int, optional (default : 2)
+            indentation of the formatter  
+        """
+
+        # Function header
+        functionDefinition = self.__makeHeader()
+        # Function body
+        functionDefinition = functionDefinition + \
+                             self.__makeRuleset(
+                                 self.__rootNode, depth=1, argName=argName, indentation= indentation
+                             )
+
+        # Write to file
+        self.__saveToFile(functionDefinition, filename, fileMode)
+        
+
+
+    # TODO 
     def loadFromFunction(self, filename):
+        
+        """ Loads IDTree from a function saved by the saveAsFunction() method
+
+        Parameters
+        ----------
+        filename : string
+            name of the file to read function from
+        """
         pass
+
+
+
+
+    ###########################################################################################
+    ####################################  Utilities  ##########################################
+    ###########################################################################################
+
+    def __makeHeader(self):
+
+        """ Creates header to the function made by saveAsFunction() method """
+
+        # Header
+        header = "def predict("
+        header = header + "sample"
+        header = header + "): #"
+        
+        # Comment to the header
+        featuresNumber = len(self.__features)
+        for i in range(0, featuresNumber):
+            featureName = self.__features[i]
+            header = header + "sample[" + str(i) +"]: " + featureName
+            if i != featuresNumber - 1:
+                header = header + ", "
+        header = header + "\n"
+        
+        return header
+
+
+
+
+    def __makeRuleset(self, node, depth, argName, indentation=2):
+
+        """ Creates if-elif ruleset used by saveAsFunction() method 
+        
+        Function is designed to create arbitrary if-elif nested structure
+        base on the tree given by the 'node' root node.
+
+        Parameters
+        ----------
+        node : IDTreeNode, IDTreeLeaf
+            root node of the tree
+        depth : int
+            depth of the structure (used to format if-elif structure
+            intendation)
+        argName : string
+            name of the argument of function (list of features' classes)
+        indentation : int, optional (default : 2)
+            indentation of the formatter             
+        """
+        #Initialize ruleset
+        ruleset = ''
+
+        # If terminal node (leaf)
+        if type(node) == IDTreeLeaf:
+            targetClass = f"return '{node.getTargetClass()}'"
+            ruleset = self.__formatRule(targetClass, depth, indentation)
+            return ruleset
+
+        # If intermediate node
+        elif type(node) == IDTreeNode:
+
+            keys = list(node.getChildren().keys())
+            for key in keys:
+
+                # First child
+                if key == keys[0]:
+                    rule = f'if {argName}[{node.getFeatureIndex()}]' + key + ':'
+
+                # Inetrmediate or last child
+                else:
+                    rule = f'elif {argName}[{node.getFeatureIndex()}]' + key + ':' 
+                       
+                # Format if-elif header
+                ruleset = ruleset + self.__formatRule(rule, depth, indentation)
+                # Call __makeRuleset() to fullfill if-elif statement (RECURSION)
+                ruleset = ruleset + self.__makeRuleset(node.getChildren()[key], depth + 1, argName, indentation)
+
+        # Wrong node's type
+        else:
+            print(f'__makeRuleset(): Wrong type of the node ({type(node)})')
+            raise TypeError()
+
+        # Return ruleset (recursively) 
+        return ruleset
+
+
+
+
+    def __formatRule(self, rule, depth, indentation=2):
+        """ Formats rule  to write it in the new line of the function 
+    
+        Parameters
+        ----------
+        rule : string
+            rule to format
+        depth : int
+            depth of the structure (used to format rule's intendation)
+        indentation : int, optional (default : 2)
+            indentation of the formatter   
+        """
+        return ' ' * indentation * depth + rule + '\n'
+
+
+
+
+    def __saveToFile(self, content, filename, fileMode='w'):
+        """ Saves content string to the file
+        
+        Parameters
+        ----------
+        content : string
+            content to write
+        filename : string
+            name of the file
+        fileMode : string, optional (default : 'w')
+            mode used to open file
+        """
+        f = open(filename, fileMode)
+        f.write(content)
