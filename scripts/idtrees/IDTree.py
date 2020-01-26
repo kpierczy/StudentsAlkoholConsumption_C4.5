@@ -1,6 +1,6 @@
 from idtrees.IDNodes import IDTreeLeaf, IDTreeNode
 
-class ID3Tree:
+class IDTree:
     """ Class represent IDTree produces by ID3 algorithm
     
     Class publishes interface to serialize IDTree in a form of Python
@@ -27,13 +27,13 @@ class ID3Tree:
             list of features present in the tree
         """
         
-        # __rootNode
+        # _rootNode
         if type(rootNode) != IDTreeLeaf and type(rootNode) != IDTreeNode:
-            self.__rootNode = None
+            self._rootNode = None
         else:
-            self.__rootNode = rootNode
-        # __features
-        self.__features = features
+            self._rootNode = rootNode
+        # _features
+        self._features = features
 
 
 
@@ -50,7 +50,7 @@ class ID3Tree:
         sample : list
             list of features representing sample
         """
-        return self._evaluateNode(self.__rootNode, sample)
+        return self.__evaluateNode(self._rootNode, sample)
 
 
 
@@ -76,7 +76,7 @@ class ID3Tree:
         # Function body
         functionDefinition = functionDefinition + \
                              self.__makeRuleset(
-                                 self.__rootNode, depth=1, argName=argName, indentation= indentation
+                                 self._rootNode, depth=1, argName=argName, indentation= indentation
                              )
 
         # Function footage
@@ -115,7 +115,7 @@ class ID3Tree:
     ####################################  Utilities  ##########################################
     ###########################################################################################
 
-    def _evaluateNode(self, node, sample):
+    def __evaluateNode(self, node, sample):
         """ Evaluates tree that has root in the 'node'
 
         Parameters
@@ -143,28 +143,28 @@ class ID3Tree:
                     # Make comparison
                     if sample[node.getFeatureIndex()] == key[5:len(key) - 1]:
                         # If comparison true, return  actual children's evaluation
-                        return self._evaluateNode(node.getChildren()[key], sample)
+                        return self.__evaluateNode(node.getChildren()[key], sample)
 
                 #Numerical feature
                 elif key.startswith(' <= '):
                     # Make comparison
                     if sample[node.getFeatureIndex()] <= float(key[4:len(key)]):
                         # If comparison true, return  actual children's evaluation
-                        return self._evaluateNode(node.getChildren()[key], sample)
+                        return self.__evaluateNode(node.getChildren()[key], sample)
 
                 elif key.startswith(' > '):
                     # Make comparison
                     if sample[node.getFeatureIndex()] > float(key[3:len(key)]):
                         # If comparison true, return  actual children's evaluation
-                        return self._evaluateNode(node.getChildren()[key], sample)
+                        return self.__evaluateNode(node.getChildren()[key], sample)
 
                 # Wrong condition
                 else:
                     raise Exception(
-                        f"_evaluateNode: wrong children node's condition ({key})"
+                        f"__evaluateNode: wrong children node's condition ({key})"
                     )
 
-            print('_evaluateNode(): impossible to classify sample')
+            print('__evaluateNode(): impossible to classify sample')
             raise Exception("Check samples arguments")
 
         # Terminal node (leaf)
@@ -185,9 +185,9 @@ class ID3Tree:
         header = header + "): #"
         
         # Comment to the header
-        featuresNumber = len(self.__features)
+        featuresNumber = len(self._features)
         for i in range(0, featuresNumber):
-            featureName = self.__features[i]
+            featureName = self._features[i]
             header = header + "sample[" + str(i) +"]: " + featureName
             if i != featuresNumber - 1:
                 header = header + ", "

@@ -1,7 +1,7 @@
 import math
 import numpy as np
 
-from idtrees.ID3Tree import ID3Tree
+from idtrees.IDTree import IDTree
 from idtrees.IDNodes import IDTreeNode, IDTreeLeaf
 
 class ID3:
@@ -103,11 +103,6 @@ class ID3:
     def compute(self, df):
         """ Computes IDTreee with ID3 algorithm
         
-        This method is distinguished from self.__buildTree() for two reasons:
-            - latter interface consistency with derived classes
-            - possible introduction of statostics utilities that would
-              measure accuracy of the built tree
-        
         Parameters
         ----------
         df : pandas.DataFrame
@@ -133,7 +128,7 @@ class ID3:
             featureName = df.columns[i]
             featuresTypes[featureName] = df[featureName].dtypes
 
-        return ID3Tree(self.__buildTree(df, featuresTypes), list(featuresTypes.keys()))
+        return IDTree(self.__buildTree(df.copy(), featuresTypes), list(featuresTypes.keys()))
 
 
 

@@ -1,4 +1,5 @@
 from idtrees.ID3 import ID3
+from idtrees.C45Tree import C45Tree
 
 class C45(ID3):
     """ C4.5 algorithm's implementation base on the extended ID3 algorithm
@@ -11,21 +12,11 @@ class C45(ID3):
     overfitting.
     """
 
-    def __init__(self, pruneThreshold, entropyIndicator="gain"):
+    def __init__(self, entropyIndicator="gain"):
     
-        """ Initializes C4.5 algorithm
-        
-        Parameters
-        ----------
-        pruneThreshold : float
-            value of threshold used during identification tree's post-pruning
-        entropyIndicator : ['gain', 'gainRatio', 'gini'], optional (default : 'gain')
-            method of measuring entropy/impurity of computed feature/target classes
-        """
+        """ Initializes C4.5 algorithm """
 
         super().__init__(entropyIndicator)
-        self.__pruneThreshold = pruneThreshold
-
 
 
 
@@ -45,12 +36,8 @@ class C45(ID3):
         
         Returns
         -------
-        tree : IDTree
+        tree : C45Tree
             result identification tree
         """
 
-        tree = super().compute(df)
-
-        #--------------------------------#
-        #--- TODO - implement pruning ---#
-        #--------------------------------#
+        return C45Tree(super().compute(df.copy()), df)
