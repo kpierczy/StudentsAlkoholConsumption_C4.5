@@ -189,6 +189,7 @@ class ID3:
             return
 
         newDF = newDf.rename(columns={targetName : 'Target'})
+        newDF['Target'] = newDF['Target'].astype(str) 
 
         return newDF
 

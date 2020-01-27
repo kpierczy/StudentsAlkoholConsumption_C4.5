@@ -164,8 +164,7 @@ class IDTree:
                         f"__evaluateNode: wrong children node's condition ({key})"
                     )
 
-            print('__evaluateNode(): impossible to classify sample')
-            raise Exception("Check samples arguments")
+            return 'Failed'
 
         # Terminal node (leaf)
         elif type(node) == IDTreeLeaf:
